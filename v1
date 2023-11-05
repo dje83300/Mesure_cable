@@ -1,0 +1,129 @@
+#include <TFT.h>
+#include <SPI.h>
+#include <SD.h>
+
+#define cs 10    // broche pour la connexion CS
+#define dc 9     // broche pour la connexion A0
+#define rst 8    // broche pour la connexion reset
+#define sd_cs 4  // broche sd
+
+
+TFT screen = TFT(cs, dc, rst);
+
+PImage logo;
+
+char metrage_actuel_TFT[4];
+char metrage_voulu_TFT[4];
+int i;
+int compteur_roue = 7;
+//int btn_rest = 3;
+int btn_plus = 3;
+int buzzer = 5;
+int metrage_actuel = 0;
+int metrage_voulu = 0;
+bool demarrage = false;
+bool metrage_atteint = false;
+
+
+void setup() {
+  Serial.begin(9600);
+
+  pinMode(compteur_roue, INPUT_PULLUP);
+  pinMode(btn_plus, INPUT_PULLUP);
+  pinMode(buzzer, OUTPUT);
+  pinMode(2, OUTPUT);  //led
+  i = 0;
+
+  //tft
+  screen.begin();
+  // couleur de l'écran ( r , g , b )
+  screen.background(0, 0, 0);
+  // taille de la police
+  screen.setTextSize(1);
+  // couleur du texte de l'écran ( r , g , b )
+  screen.stroke(255, 0, 255);
+  
+  logo = screen.loadImage("LOGO.bmp");
+  screen.image(logo, 0, 0);
+
+  // wait a little bit before drawing again
+  delay(1500);
+  // afficher un texte à l'écran avec des coordonnées x et y
+  screen.text("Longueur voulue ?", 0, 0);
+  delay(10);
+}
+
+void loop() {
+  if (digitalRead(btn_plus) == LOW) {
+    metrage_voulu = metrage_voulu + 1;
+
+    screen.background(0, 0, 0);
+    //affiche le texte statique
+    screen.setTextSize(1);
+    screen.stroke(255, 0, 255);
+    screen.text("Longueur voulue ?", 0, 0);
+    // affiche la longueur voulue
+    screen.setTextSize(2);
+    screen.stroke(255, 255, 255);
+    // Convertir i en une chaîne de caractères
+    String t = String(metrage_voulu);
+    t.toCharArray(metrage_voulu_TFT, 4);
+    screen.text(metrage_voulu_TFT, 5, 20);
+    delay(100);
+  }
+
+  //si capteur rotation oui
+  if (digitalRead(compteur_roue) == LOW) {
+    i = i + 1;
+    metrage_actuel = i;
+    Serial.println(i);
+    //allume la led
+    digitalWrite(2, HIGH);
+    //buzzer
+    digitalWrite(buzzer, HIGH);
+    //TFT
+    screen.background(0, 0, 0);
+    //affiche le texte statique
+    screen.setTextSize(1);
+    screen.stroke(255, 0, 255);
+    screen.text("Longueur voulue ?", 0, 0);
+//affiche le la longueur voulue
+    screen.setTextSize(2);
+    screen.stroke(255, 255, 255);
+    // Convertir i en une chaîne de caractères
+    String t = String(i);
+    t.toCharArray(metrage_actuel_TFT, 4);
+
+    screen.text(metrage_voulu_TFT, 5, 20);
+    //affiche le texte statique
+    screen.setTextSize(1);
+    screen.stroke(255, 0, 255);
+    screen.text("Longueur actuelle :", 0, 40);
+//affiche le la longueur actuelle
+    screen.setTextSize(2);
+    screen.stroke(255, 255, 255);
+    screen.text(metrage_actuel_TFT, 5, 60);
+    delay(100);
+  } else {  
+    digitalWrite(2, LOW);
+    digitalWrite(buzzer, LOW);
+   
+  }
+
+  if (metrage_actuel >= metrage_voulu && metrage_actuel > 0) {
+
+    for (int series = 0; series < 3; series++) {
+      for (int beep = 0; beep < 3; beep++) {
+        // Activer le buzzer (produire un bip)
+        digitalWrite(buzzer, HIGH);
+        digitalWrite(2, HIGH);
+        delay(100);  // Durée du bip en millisecondes
+        digitalWrite(buzzer, LOW);
+        digitalWrite(2, LOW);
+        delay(100);  // Durée du silence entre les bips en millisecondes
+      }
+      delay(1000);  // Pause d'une seconde entre les séries de bips
+    }
+    
+  }
+}  //fin loop
